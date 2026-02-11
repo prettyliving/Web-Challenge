@@ -1,78 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drive Into Nature</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Drive Into Nature — Fixed</title>
+<style>
+  :root{
+    --bg1:#0f2027; --bg2:#203a43; --bg3:#2c5364;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:
+    linear-gradient(to top,var(--bg3),var(--bg2),var(--bg1));color:#fff;display:flex;align-items:center;justify-content:center;}
+  .wrap{width:95vw;max-width:900px;text-align:center;position:relative;padding:36px 20px 120px;}
+  h1{margin:0 0 8px;font-size:2.4rem;letter-spacing:-0.5px}
+  p{margin:0 0 18px;opacity:0.9}
 
-    <style>
-        body { 
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(to top, #2c5364, #203a43, #0f2027);
-            color: #fff;
-            text-align: center;
-            overflow: hidden;
-        
-        }
-        h1 {
-            margin-top: 40px;
-            font-size: 3rem;
-        }
-        .car {
-            font-size: 4rem;
-            position: absolute;
-            bottom: 80px;
-            left: -100px;
-            transition: left 3s ease-in-out;
-        }
-        .road {
-            position: absolute;
-            bottom: 60px;
-            width: 100%;
-            height: 20px;
-            background: #444;
-        }
-        button { 
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 1rem;
-            border: none;
-            border-radius: 8px;
-            background: #00c9a7;
-            color: #050404;
-            font-weight: bold;
-        }
-        button:hover {
-            background: #00a68a;
-        }
-        .trees {
-            position: absolute;
-            bottom: 120px;
-            width: 100%;
-            font-size: 2rem;
-        }
-    </style>  
+  button{
+    appearance:none;border:0;padding:12px 18px;border-radius:10px;font-weight:700;
+    background:linear-gradient(180deg,#00e6c1,#00b88f);color:#042b26;cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);font-size:1rem;
+  }
+  button:active{transform:translateY(1px)}
+
+  /* Scene layout */
+  .trees{position:absolute;left:0;right:0;bottom:160px;font-size:26px;pointer-events:none;user-select:none}
+  .road{position:absolute;left:0;right:0;bottom:60px;height:44px;background:#2b2b2b;border-top:3px solid rgba(255,255,255,.03);box-shadow:inset 0 6px 0 rgba(255,255,255,.02)}
+  .car {
+    position:absolute;
+    bottom:68px;
+    left:-140px;               /* start off-screen to the left */
+    font-size:54px;
+    will-change:transform;
+    transform: translateX(0);
+    pointer-events:none;
+  }
+
+  /* Drive animation (moves car from left offscreen to right offscreen) */
+  @keyframes drive-across {
+    0%   { transform: translateX(0) rotate(0deg); }
+    25%  { transform: translateX(calc(25vw + 200px)) rotate(-1deg); }
+    50%  { transform: translateX(calc(50vw + 400px)) rotate(0deg); }
+    75%  { transform: translateX(calc(75vw + 600px)) rotate(1deg); }
+    100% { transform: translateX(calc(120vw + 800px)) rotate(0deg); } /* finish off-screen to the right */
+  }
+
+  /* class applied when driving */
+  .driving {
+    animation: drive-across 3s cubic-bezier(.22,.9,.21,1) forwards;
+  }
+
+  /* small responsive tweak so emoji doesn't get huge on tiny screens */
+  @media (max-width:420px){
+    .car{font-size:44px}
+    .trees{font-size:20px}
+  }
+</style>
 </head>
 <body>
-    <h1>Drive Into Nature</h1>
-    <p>Click the botton and let the journey begin.</p>
+  <div class="wrap" role="main" aria-label="Drive into Nature demo">
+    <h1>Drive Into Nature 🌲</h1>
+    <p>Click the button and let the little car go for a spin across the screen.</p>
 
-    <button onclick="drive()">Start the Ride</button>
+    <button id="goBtn" type="button">Start the Ride</button>
 
-    <div class="trees">🌲🌳🌲🌳🌲</div>
-    <div class="road"></div>
-    <div class="car" id="car"🚗></div>
+    <div class="trees" aria-hidden="true">🌲 🌳 🌲 🌳 🌲 🌳 🌲 🌳 🌲 🌿</div>
+    <div class="road" aria-hidden="true"></div>
 
-    <script>
-        function drive() {
-            const car = document.getElementById('car');
-            car.style.left = "110%";
-            setTimeout(() =>{
-                car.style.left = "-100px";
-            }, 3200);
-        }
-    </script>
+    <div class="car" id="car" aria-hidden="true">🚗</div>
+  </div>
+
+<script>
+  (function(){
+    const btn = document.getElementById('goBtn');
+    const car = document.getElementById('car');
+
+    // robust click handler: toggle the driving class, but always restart cleanly
+    btn.addEventListener('click', () => {
+      // if currently driving, restart the animation by removing the class and forcing reflow
+      if (car.classList.contains('driving')) {
+        car.classList.remove('driving');
+        // force reflow so the class re-add restarts the animation
+        // eslint-disable-next-line no-unused-expressions
+        void car.offsetWidth;
+      }
+      car.classList.add('driving');
+      // optional: disable button while driving to prevent spam (re-enable on animationend)
+      btn.disabled = true;
+    });
+
+    // When animation completes, reset the car back off-screen left and re-enable the button
+    car.addEventListener('animationend', () => {
+      car.classList.remove('driving');
+      // snap back to left by resetting transform & left
+      car.style.transform = '';
+      // re-enable the button after a tiny pause for polish
+      setTimeout(() => btn.disabled = false, 120);
+    });
+
+    // also allow pressing Space/Enter on the button (native), nothing extra needed
+  })();
+</script>
 </body>
-
 </html>
